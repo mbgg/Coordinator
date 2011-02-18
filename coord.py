@@ -4,7 +4,10 @@
 
 import socket
 
-def communication():
+def preface():
+	pass
+
+def nwcom():
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 	s.bind(("", 51000)) 
 	s.listen(1)
@@ -12,7 +15,7 @@ def communication():
 	try: 
 		while True: 
 			komm, addr = s.accept() 
-			print "connected to %s" % addr[0]
+			print "connection from %s" % addr[0]
 
 			while True: 
 				data = komm.recv(1024)
@@ -39,6 +42,9 @@ def communication():
 		s.close()
 
 print "coord started"
-communication()
+preface()
+
+nwcom()
+
 
 
