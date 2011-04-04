@@ -41,14 +41,46 @@ if __name__ == "__main__":
 	print "log-checker started"
 	log_checker_preface()
 
-	#for row in fd:
 	for [ pid, time, op, path, offset, size ] in fd:
-#		if pidhash.get(pid) != None:
-#			continue
-#		filehash = HashTable()
-#		pidhash.set(pid, filehash)
-		#print row
-		print "%s %s %s %s %s %s" %(pid, time, op, path, offset, size)
+		if op != "write" and op != "read":
+			print "op %s ignored" %op
+			continue
+
+		filehash = pidhash.get(pid)
+		if filehash == None:
+			# we have a new process
+			rangelist = [[op, int(offset), int(offset)+int(size)]] 
+			filehash = HashTable()
+			filehash.set(path, rangelist)
+			pidhash.set(pid, filehash)
+			print "added pid %s [%d,%d]" %(pid, int(offset), int(offset)+int(size))
+
+		else:
+			# get filehash from pid
+			filehash = pidhash.get(pid);
+			# we have the file already?
+			expath = filehash.get(path)
+			if expath == None:
+#				print "filepaht %s didn't exist %s %s" %(path, pid, op)
+				rangelist = [[op, int(offset), int(offset)+int(size)]] 
+				filehash = HashTable()
+				filehash.set(path, rangelist)
+				#print "op %s [%d,%d] added" %(op, int(offset), int(offset)+int(size))
+			else:
+#				print "filepaht %s exists %s %s" %(path, pid, op)
+			#we have the range already?
+				found = None
+				for i in range(0, len(expath)):
+					if int(offset) >= int(expath[i][1]) and int(offset)+int(size) <= int(expath[i][2]) and op == expath[i][0]:
+						print "%s op %s [%d,%d] already in filehash" %(pid, op, int(offset), int(offset)+int(size))
+						found = expath
+						break
+
+				if found == None:
+					print "%s op %s [%d,%d] not in filehash" %(pid, op, int(offset), int(offset)+int(size))
+					expath.append([op, int(offset), int(offset)+int(size)])
+
+#		print "%s %s %s %s %s %s" %(pid, time, op, path, offset, size)
 
 	#log_checker_postface()
 
