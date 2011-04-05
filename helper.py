@@ -11,11 +11,9 @@ class LogData:
 #		self.pidhash[pid] = filehash
 
 	def add(self, pid, path, op, offset, size):
-		filehash = self.pidhash.get(pid, {})
-		self.pidhash[pid] = filehash
-		rangelist = filehash.get(path, [])
+		filehash = self.pidhash.setdefault(pid, {})
+		rangelist = filehash.setdefault(path, [])
 		rangelist.append([op, offset, size])
-		filehash[path] = rangelist
 		#print "%s added %s to %s [%d,%d]" %(pid, rangelist[len(rangelist)-1][0], filehash.keys(), offset, offset+size)
 
 	def get_ranges(self, pid, path):
