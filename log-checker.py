@@ -1,20 +1,28 @@
 #!/usr/bin/python 
+#	The data structure:
+#
+#	hashmap pidhash(pid,filehash) -> all files used by pid
+# hashmap filehash(path,range) -> all byte ranges used for this file by pid
+# set     range([operation, offset, offset+size]+) -> ranges used by pid for specific file including operation
+#
 
 import sys
 import csv
 from hasht import HashTable
+from helper import LogData
 
 #conn = None #connection to hypervisor
 filename = '/tmp/fuse-log-fifo'
 global fd
 global pidhash 
+global logdata
 
 def log_checker_get_pid(something):
 	
 	return 0
 
 def log_checker_preface():
-	global filename, fd, pidhash
+	global filename, fd, pidhash, logdata
 
 	print "open %s for reading" %(filename)
 	#fd = csv.reader(open('/tmp/fuse-log-fifo', 'r'), delimiter=':', quotechar='|')
@@ -24,15 +32,63 @@ def log_checker_preface():
 		return 1
 
 	pidhash = HashTable()
+	logdata = LogData()
 	
 
 def log_checker_postface():
 	print "entering postface"
-	global conn
-	fd.close()
+	global logdata
+	pidlist = logdata.get_pids_all()
+
+	path = logdata.get_pathes(pidlist[0])
+	print logdata.get_ranges(pidlist[0], path[0])
+	print pidlist
+	for i in range(0, len(pidlist)):
+		print "pid %s accessed: %s" %(pidlist[i], logdata.get_pathes(pidlist[i]))
 	pass
 
+def log_build_access_map(fd):
+	global logdata
+	for [ pid, time, op, path, offset, size ] in fd:
+		if op != "write" and op != "read":
+			continue
+		offset = int(offset)
+		size = int(size)
+		logdata.add(pid, path, op, offset, size)
 
+def log_minimize_map():
+	global pidhash
+
+	found = pidhash
+	#pidlist = []
+	#pidlist = pidhash.get_keys()
+
+	for pid in pidhash.get_keys(): #pidlist:
+		rangelist = []
+		filehash = pidhash.get(pid)
+		#filelist = []
+		#filelist = filehash.get_keys()
+
+		for f in filehash.get_keys(): #filelist:
+			rangelist = filehash.get(f)
+
+			while found != None:
+				found = None
+				for r in rangelist:
+					if offset >= r[1] and offset+size <= r[2] and op == r[0]:
+						print "%s op %s [%d,%d] already in filehash" %(pid, op, offset, offset+size)
+						found = r
+						break
+					# C + E
+					elif offset-1 >= r[1] and (offset-1 <= r[2])  and op == r[0]:
+						r[2] = offset+size
+						found = r
+						break 
+					# D + F
+
+
+def find_conflicts():
+	pass
 
 if __name__ == "__main__":
 	global fd
@@ -41,46 +97,9 @@ if __name__ == "__main__":
 	print "log-checker started"
 	log_checker_preface()
 
-	for [ pid, time, op, path, offset, size ] in fd:
-		if op != "write" and op != "read":
-			print "op %s ignored" %op
-			continue
+	log_build_access_map(fd)
 
-		filehash = pidhash.get(pid)
-		if filehash == None:
-			# we have a new process
-			rangelist = [[op, int(offset), int(offset)+int(size)]] 
-			filehash = HashTable()
-			filehash.set(path, rangelist)
-			pidhash.set(pid, filehash)
-			print "added pid %s [%d,%d]" %(pid, int(offset), int(offset)+int(size))
+#	log_minimize_map()
 
-		else:
-			# get filehash from pid
-			filehash = pidhash.get(pid);
-			# we have the file already?
-			expath = filehash.get(path)
-			if expath == None:
-#				print "filepaht %s didn't exist %s %s" %(path, pid, op)
-				rangelist = [[op, int(offset), int(offset)+int(size)]] 
-				filehash = HashTable()
-				filehash.set(path, rangelist)
-				#print "op %s [%d,%d] added" %(op, int(offset), int(offset)+int(size))
-			else:
-#				print "filepaht %s exists %s %s" %(path, pid, op)
-			#we have the range already?
-				found = None
-				for i in range(0, len(expath)):
-					if int(offset) >= int(expath[i][1]) and int(offset)+int(size) <= int(expath[i][2]) and op == expath[i][0]:
-						print "%s op %s [%d,%d] already in filehash" %(pid, op, int(offset), int(offset)+int(size))
-						found = expath
-						break
-
-				if found == None:
-					print "%s op %s [%d,%d] not in filehash" %(pid, op, int(offset), int(offset)+int(size))
-					expath.append([op, int(offset), int(offset)+int(size)])
-
-#		print "%s %s %s %s %s %s" %(pid, time, op, path, offset, size)
-
-	#log_checker_postface()
+	log_checker_postface()
 
