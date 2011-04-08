@@ -8,7 +8,7 @@ import csv
 from helper import LogData
 
 #conn = None #connection to hypervisor
-filename = '/tmp/fuse-log-fifo'
+filename = './fuse-log-fifo'
 global fd
 global logdata
 
