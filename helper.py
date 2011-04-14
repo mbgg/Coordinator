@@ -1,5 +1,8 @@
 #!/usr/bin/python 
 
+import pickle
+import os.path
+
 class LogData:
 	
 	def __init__(self):#,pid,path,op,offset,size):
@@ -48,6 +51,21 @@ class LogData:
 				pidlist.append(pid)
 		return pidlist
 		
+	def save_data(self, path):
+		fd = open(path, 'w')
+		fd.seek(0)
+		pickle.dump(self.pidhash, fd)
+		fd.close()
 
+	def load_data(self, path):
+		if os.path.isfile(path):
+			self.pidhash = {}
+			fd = open(path, 'r')
+			self.pidhash = pickle.load(fd)
+			fd.close()
+			return True
+		else:
+			return False
+		
 	
 
