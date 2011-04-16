@@ -59,32 +59,78 @@ def log_build_access_map(fd):
 def log_minimize_map():
 	pass
 
+#NYAP NYAP NYAP
 def find_conflicts():
+	pid_path_list = logdata.get_pid_path()
+	for i in range(0, len(pid_path_list)-1):
+		for j in range(i+1, len(pid_path_list)):
+			range_i = logdata.get_ranges(pid_path_list[i][0], pid_path_list[i][1])  #pid_path_list looks like [[pid, path](,[pid, path])*]
+			if pid_path_list[i][0] != pid_path_list[j][0] and pid_path_list[i][1] == pid_path_list[j][1]:
+				print "pid %s and %s access same file %s" %(pid_path_list[i][0], pid_path_list[j][0], pid_path_list[i][1])
+				range_j = logdata.get_ranges(pid_path_list[j][0], pid_path_list[j][1])
+				ret = find_conflicts_range(range_i, range_j, pid_path_list[i][1])
+	if ret:
+		print "we found at least one conflict in"
+	return ret
+
+# nyap
+def find_conflicts_range(range_i, range_j, filename):	
+	for ri in iter(range_i):
+		for rj in iter(range_j):
+			rimin = ri[1]
+			rimax = rimin + ri[2]
+			rjmin = rj[1]
+			rjmax = rjmin + rj[2]
+			if rimin > rjmax or rimax < rjmin: #case A
+				continue
+			else: #f rimin >= rjmin and rimax >= rjmax: #case B
+				print "conflict on file %s in i[%d,%d] and j[%d,%d]" %(filename, rimin, rimax, rjmin, rjmax)
+				return True
+
+	return False
 	pass
 
 if __name__ == "__main__":
 	global fd		
+	file_to_load = None
+	load = False
 
 	for arg in sys.argv:
+		if load == True:
+			file_to_load = arg
+			load = False
+			continue
 		if arg == "save" or arg == "s":
 			save = True
 		else:
 			save = False
+		if arg == "load" or arg == "l":
+			load = True
+		else:
+			load = False
 
 	logdata = LogData()
 
 	print "log-checker started"
-	if logdata.load_data(saved_status) == False:
-		print "build access map from log file"
+
+	# NYAP!!!!!
+	if file_to_load != None:
+		print "access map load from %s" %file_to_load
+		if logdata.load_data(file_to_load) == False:
+			print "not able to load file %s" %(file_to_load)
+			sys.exit(1)
+	else:
+#	if logdata.load_data(saved_status) == False:
 		log_checker_preface()
 		log_build_access_map(fd)
 		if save == True:
 			logdata.save_data("./status.saved")
-	else:
-		print "access map load from %s" %saved_status
+#	else:
+#		print "access map load from %s" %saved_status
 
 
 #	log_minimize_map()
 
 	log_checker_postface()
 
+	find_conflicts()
