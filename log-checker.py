@@ -61,6 +61,7 @@ def log_minimize_map():
 
 #NYAP NYAP NYAP
 def find_conflicts():
+	ret = None
 	pid_path_list = logdata.get_pid_path()
 	for i in range(0, len(pid_path_list)-1):
 		for j in range(i+1, len(pid_path_list)):
@@ -69,12 +70,13 @@ def find_conflicts():
 				print "pid %s and %s access same file %s" %(pid_path_list[i][0], pid_path_list[j][0], pid_path_list[i][1])
 				range_j = logdata.get_ranges(pid_path_list[j][0], pid_path_list[j][1])
 				ret = find_conflicts_range(range_i, range_j, pid_path_list[i][1])
-	if ret:
+	if ret != None:
 		print "we found at least one conflict in"
 	return ret
 
 # nyap
 def find_conflicts_range(range_i, range_j, filename):	
+	ret = False
 	for ri in iter(range_i):
 		for rj in iter(range_j):
 			rimin = ri[1]
@@ -85,9 +87,9 @@ def find_conflicts_range(range_i, range_j, filename):
 				continue
 			else: #f rimin >= rjmin and rimax >= rjmax: #case B
 				print "conflict on file %s in i[%d,%d] and j[%d,%d]" %(filename, rimin, rimax, rjmin, rjmax)
-				return True
+				ret = True
 
-	return False
+	return ret
 	pass
 
 if __name__ == "__main__":

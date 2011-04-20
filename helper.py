@@ -8,10 +8,45 @@ class LogData:
 	def __init__(self):#,pid,path,op,offset,size):
 		self.pidhash = {}
 
-	def add(self, pid, path, op, offset, size): # add data to the data structure...
+	def append(self, op, offset, size, rangelist):
+		if rangelist != []:
+			for range in iter(rangelist):
+				old_offset = range[1]
+				old_size = range[2] + old_offset
+				new_size = offset + size
+				new_offset = offset
+				if new_offset < old_offset and (new_size <= old_size and new_size > old_offset):
+					#print "append new %s[%d:%d]" %(op, offset, size)
+					range[1] = new_offset
+					return True
+				if (new_offset >= old_offset and new_offset <= old_size) and new_size > old_size:
+					#print "append new %s[%d:%d]" %(op, offset, size)
+					range[2] = new_size - new_offset + old_size - old_offset
+					return True
+				if new_offset <= old_offset and new_size >= old_size:
+					#print "append new %s[%d:%d]" %(op, offset, size)
+					range[1] = new_offset
+					range[2] = new_size - new_offset + old_size - old_offset
+					return True
+				#print "new[%d:%d] - old[%d:%d]" %(new_offset, new_size, old_offset, old_size)
+			#print "rangelist has no fitting part"
+			return False
+		else:
+			#print "rangelist is empty"
+			return False
+
+	def oldadd(self, pid, path, op, offset, size): # add data to the data structure...
 		filehash = self.pidhash.setdefault(pid, {})
 		rangelist = filehash.setdefault(path, [])
 		rangelist.append([op, offset, size])
+
+
+	def add(self, pid, path, op, offset, size): # add data to the data structure...
+		filehash = self.pidhash.setdefault(pid, {})
+		rangelist = filehash.setdefault(path, [])
+		if self.append(op, offset, size, rangelist) == False:
+			#print "add new %s[%d:%d]" %(op, offset, size+offset)
+			rangelist.append([op, offset, size])
 
 	def get_ranges(self, pid, path): # returns list of all file ranges from pid path tupel
 		filehash = self.pidhash.get(pid)
