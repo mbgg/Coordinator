@@ -5,7 +5,7 @@ import os.path
 
 class LogData:
 	
-	def __init__(self):#,pid,path,op,offset,size):
+	def __init__(self):
 		self.pidhash = {}
 
 	def append(self, op, offset, size, rangelist):
@@ -39,7 +39,6 @@ class LogData:
 		filehash = self.pidhash.setdefault(pid, {})
 		rangelist = filehash.setdefault(path, [])
 		rangelist.append([op, offset, size])
-
 
 	def add(self, pid, path, op, offset, size): # add data to the data structure...
 		filehash = self.pidhash.setdefault(pid, {})
