@@ -104,3 +104,6 @@ class LogData:
 		
 	
 
+if __name__ == "__main__":
+	print "executing data structure usecase..."
+

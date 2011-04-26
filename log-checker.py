@@ -5,11 +5,14 @@
 
 import sys
 import csv
-from helper import LogData
+import getopt
+from logdata import LogData
 
 #filename = './fuse-madbench-test'
-filename = '/tmp/fuse-log-fifo'
+#filename = '/home/matthias/fuse-log-fifo'
+filename = '/home/matthias/fuse/fuse-test/text.txt'
 saved_status = './status.saved'
+global text_to_load
 
 global fd
 global logdata
@@ -21,6 +24,9 @@ def log_checker_get_pid(something):
 def log_checker_preface():
 	global filename, fd, logdata
 
+	if text_to_load != None:
+		filename = text_to_load
+
 	print "open %s for reading" %(filename)
 	#fd = csv.reader(open('/tmp/fuse-log-fifo', 'r'), delimiter=':', quotechar='|')
 	fd = csv.reader(open(filename, 'r'), delimiter=':', quotechar='|')
@@ -31,7 +37,6 @@ def log_checker_preface():
 	
 
 def log_checker_postface():
-	print "entering postface"
 	global logdata
 
 	pidlist = logdata.get_pids_all()
@@ -92,44 +97,55 @@ def find_conflicts_range(range_i, range_j, filename):
 	return ret
 	pass
 
+def usage():
+	print "-h       --help \t print this help"
+	print "-t[path] --text=[path] \t load data from text file"
+	print "-l[path] --load=[path] \t load raw data from file path"
+	print "-s[path] --save=[path] \t save raw data to file path"
+
 if __name__ == "__main__":
 	global fd		
 	file_to_load = None
-	load = False
+	save_to_file = None
 
-	for arg in sys.argv:
-		if load == True:
-			file_to_load = arg
-			load = False
-			continue
-		if arg == "save" or arg == "s":
-			save = True
+	global text_to_load
+	text_to_load = None
+
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], "l:s:ht:", ["load=", "save=", "help", "text="])
+	except getopt.GetoptError, err:
+			print str(err) # will print something like "option -a not recognized"
+			usage()
+			sys.exit(2)
+	for o, a in opts:
+		if o in ("-l", "--load"):
+			file_to_load = a
+		elif o in ("-h", "--help"):
+			usage()
+			sys.exit()
+		elif o in ("-s", "--save"):
+			save_to_file = a
+		elif o in ("-t", "--text"):
+			text_to_load = a
 		else:
-			save = False
-		if arg == "load" or arg == "l":
-			load = True
-		else:
-			load = False
+			assert False, "unhandled option"
 
 	logdata = LogData()
 
 	print "log-checker started"
 
-	# NYAP!!!!!
 	if file_to_load != None:
 		print "access map load from %s" %file_to_load
 		if logdata.load_data(file_to_load) == False:
 			print "not able to load file %s" %(file_to_load)
 			sys.exit(1)
 	else:
-#	if logdata.load_data(saved_status) == False:
 		log_checker_preface()
 		log_build_access_map(fd)
-		if save == True:
-			logdata.save_data("./status.saved")
-#	else:
-#		print "access map load from %s" %saved_status
 
+		if save_to_file != None: #save == True:
+			print "save raw data to %s" %save_to_file
+			logdata.save_data(save_to_file)#"./status.saved")
 
 #	log_minimize_map()
 
