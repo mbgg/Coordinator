@@ -11,10 +11,13 @@ class LogData:
 	def append(self, op, offset, size, rangelist):
 		if rangelist != []:
 			for range in iter(rangelist):
+				old_op = range[0]
 				old_offset = range[1]
 				old_size = range[2] + old_offset
 				new_size = offset + size
 				new_offset = offset
+				if old_op != op:
+					continue
 				if new_offset < old_offset and (new_size <= old_size and new_size > old_offset):
 					#print "append new %s[%d:%d]" %(op, offset, size)
 					range[1] = new_offset
@@ -105,4 +108,14 @@ class LogData:
 
 if __name__ == "__main__":
 	print "executing data structure usecase..."
+	logdata = LogData()
+	#logdata.add(pid, path, op, offset, size)
+	logdata.add(1, 'test', 'read', 10, 2)
+	logdata.add(1, 'test', 'read', 8, 2)
+	logdata.add(1, 'test', 'read', 11, 100)
+	logdata.add(1, 'test', 'read', 15, 10)
 
+	logdata.add(1, 'test', 'write', 10, 200)
+	logdata.add(1, 'test', 'write', 11, 2)
+
+	print logdata.get_ranges(1, 'test')
