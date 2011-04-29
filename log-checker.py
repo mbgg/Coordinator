@@ -46,15 +46,31 @@ def log_checker_postface():
 
 def log_build_access_map(fd):
 	global logdata
+	pid_string = None
+	id_list = pid_check_list #["/tmp/terminal0", "/tmp/terminal1", "/tmp/terminal2", "/tmp/terminal3", "/tmp/terminal4", "/tmp/terminal5"]
 	for [ pid, time, op, path, offset, size ] in fd:
+		if pid_string != None:
+			if path in id_list and op == "close":
+					pid_string = None
+					continue
+
+		if pid_string == None:
+			if path in id_list and op == "open":
+					pid_string = path
+					continue
+
 		if op != "write" and op != "read":
 			continue
+
 		offset = int(offset)
 		size = int(size)
-		logdata.add(pid, path, op, offset, size)
+#		logdata.add(pid, path, op, offset, size)
+		
+		if pid_string == None:
+			logdata.add(pid, path, op, offset, size)
+		else:
+			logdata.add(pid_string, path, op, offset, size)
 
-def log_minimize_map():
-	pass
 
 #NYAP NYAP NYAP
 def find_conflicts():
@@ -65,19 +81,19 @@ def find_conflicts():
 	if pid_check_list:
 		for i in range(0, len(pid_path_list)-1):
 			if pid_path_list[i][0] not in pid_check_list:
-				print "pid %s ignored" %pid_path_list[i][0]
+				#print "pid %s ignored" %pid_path_list[i][0]
 				continue
 			for j in range(i+1, len(pid_path_list)):
 				if pid_path_list[j][0] not in pid_check_list:
-					print "pid %s ignored" %pid_path_list[j][0]
+					#print "pid %s ignored" %pid_path_list[j][0]
 					continue
 				range_i = logdata.get_ranges(pid_path_list[i][0], pid_path_list[i][1])  #pid_path_list looks like [[pid, path](,[pid, path])*]
 				if pid_path_list[i][0] != pid_path_list[j][0] and pid_path_list[i][1] == pid_path_list[j][1]:
 					#print "pid %s and %s access same file %s" %(pid_path_list[i][0], pid_path_list[j][0], pid_path_list[i][1])
 					range_j = logdata.get_ranges(pid_path_list[j][0], pid_path_list[j][1])
-					ret = find_conflicts_range(range_i, range_j, pid_path_list[i][1])
-					if ret == True:
-						conflicts.add(pid_path_list[i][0], pid_path_list[j][0], pid_path_list[i][1])
+					ret = find_conflicts_range(range_i, range_j, pid_path_list[i][1], pid_path_list[i][0], pid_path_list[j][0])
+#					if ret == True:
+#						conflicts.add(pid_path_list[i][0], pid_path_list[j][0], pid_path_list[i][1]) # pid, cpid, cpath
 
 	else:
 		for i in range(0, len(pid_path_list)-1):
@@ -92,9 +108,9 @@ def find_conflicts():
 				if pid_path_list[i][0] != pid_path_list[j][0] and pid_path_list[i][1] == pid_path_list[j][1]:
 					#print "pid %s and %s access same file %s" %(pid_path_list[i][0], pid_path_list[j][0], pid_path_list[i][1])
 					range_j = logdata.get_ranges(pid_path_list[j][0], pid_path_list[j][1])
-					ret = find_conflicts_range(range_i, range_j, pid_path_list[i][1])
-					if ret == True:
-						conflicts.add(pid_path_list[i][0], pid_path_list[j][0], pid_path_list[i][1])
+					ret = find_conflicts_range(range_i, range_j, pid_path_list[i][1], pid_path_list[i][0], pid_path_list[j][0])
+#					if ret == True:
+#						conflicts.add(pid_path_list[i][0], pid_path_list[j][0], pid_path_list[i][1])
 
 	if ret != None:
 		#print "we found at least one conflict"
@@ -102,7 +118,7 @@ def find_conflicts():
 	return ret
 
 # nyap
-def find_conflicts_range(range_i, range_j, filename):	
+def find_conflicts_range(range_i, range_j, filename, pid, cpid):	
 	ret = False
 	for ri in iter(range_i):
 		for rj in iter(range_j):
@@ -115,6 +131,7 @@ def find_conflicts_range(range_i, range_j, filename):
 			else: #f rimin >= rjmin and rimax >= rjmax: #case B
 				if ri[0] == "write" or rj[0] == "write": # r-w or w-r accesses only NYAP!
 					print "conflict on file %s in i[%d,%d] and j[%d,%d] - %s %s" %(filename, rimin, rimax, rjmin, rjmax, ri[0], rj[0])
+					conflicts.add(pid, cpid, filename) # pid, cpid, cpath
 					ret = True
 
 	return ret
@@ -203,6 +220,6 @@ if __name__ == "__main__":
 				print "number of conflicts between %s and %s: %s" %(pids[p1], pids[p2], numc)
 				totalconflicts = totalconflicts + numc
 
-	print "total number of conflicts: %d" %totalconflicts
+	print "total number of logged filesystem operations %d - number of overall conflicts %d" %(logdata.get_number_logged_fs_ops(), totalconflicts)
 	
 	#log_checker_postface()

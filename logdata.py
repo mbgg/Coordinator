@@ -7,6 +7,13 @@ class LogData:
 	
 	def __init__(self):
 		self.pidhash = {}
+		self.number_of_logged_fs_ops = 0
+
+	def op_logged(self):
+		self.number_of_logged_fs_ops += 1
+
+	def get_number_logged_fs_ops(self):
+		return self.number_of_logged_fs_ops
 
 	def append(self, op, offset, size, rangelist):
 		if rangelist != []:
@@ -39,11 +46,13 @@ class LogData:
 			return False
 
 	def oldadd(self, pid, path, op, offset, size): # add data to the data structure...
+		self.op_logged()
 		filehash = self.pidhash.setdefault(pid, {})
 		rangelist = filehash.setdefault(path, [])
 		rangelist.append([op, offset, size])
 
 	def add(self, pid, path, op, offset, size): # add data to the data structure...
+		self.op_logged()
 		filehash = self.pidhash.setdefault(pid, {})
 		rangelist = filehash.setdefault(path, [])
 		if self.append(op, offset, size, rangelist) == False:
