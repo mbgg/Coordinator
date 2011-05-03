@@ -45,11 +45,11 @@ class LogData:
 			#print "rangelist is empty"
 			return False
 
-	def oldadd(self, pid, path, op, offset, size): # add data to the data structure...
+	def oldadd(self, pid, path, op, offset, size, time): # add data to the data structure...
 		self.op_logged()
 		filehash = self.pidhash.setdefault(pid, {})
 		rangelist = filehash.setdefault(path, [])
-		rangelist.append([op, offset, size])
+		rangelist.append([op, offset, size, time])
 
 	def add(self, pid, path, op, offset, size): # add data to the data structure...
 		self.op_logged()
