@@ -56,7 +56,7 @@ def log_build_access_map(fd, operation):
 	global logdata
 	print "log build access map with %s and %s" %(fd, operation)
 	pid_string = None
-	id_list = pid_check_list #["/tmp/terminal0", "/tmp/terminal1", "/tmp/terminal2", "/tmp/terminal3", "/tmp/terminal4", "/tmp/terminal5"]
+	id_list = pid_check_list 
 	for [ pid, time, op, path, offset, size ] in fd:
 		if pid_string != None:
 			if path in id_list and op == "close":
@@ -66,7 +66,6 @@ def log_build_access_map(fd, operation):
 		if pid_string == None:
 			if path in id_list and op == "open":
 					if operation != 0:
-						print "we use %s as pid" %operation
 						pid_string = operation
 					else:
 						pid_string = path
@@ -80,8 +79,11 @@ def log_build_access_map(fd, operation):
 #		logdata.add(pid, path, op, offset, size)
 		
 		if pid_string == None:
-			#logdata.add(pid, path, op, offset, size)
-			logdata.oldadd(pid, path, op, offset, size, time)
+			if operation == 0:
+				#logdata.add(pid, path, op, offset, size)
+				logdata.oldadd(pid, path, op, offset, size, time)
+			elif operation != 0:
+				logdata.oldadd(operation, path, op, offset, size, time)
 		else:
 			#logdata.add(pid_string, path, op, offset, size)
 			logdata.oldadd(pid_string, path, op, offset, size, time)
@@ -118,11 +120,12 @@ def find_conflicts():
 					continue
 				range_i = logdata.get_ranges(pid_path_list[i][0], pid_path_list[i][1])  #pid_path_list looks like [[pid, path](,[pid, path])*]
 				if pid_path_list[i][0] != pid_path_list[j][0] and pid_path_list[i][1] == pid_path_list[j][1]: #access same file
+					print "%s and %s access same file %s" %(pid_path_list[i][0], pid_path_list[j][0], pid_path_list[j][1])
 					range_j = logdata.get_ranges(pid_path_list[j][0], pid_path_list[j][1])
 					ret = find_conflicts_range(range_i, range_j, pid_path_list[i][1], pid_path_list[i][0], pid_path_list[j][0])
 
 	if ret != None:
-		#print "we found at least one conflict"
+		print "we found at least one conflict"
 		pass
 	return ret
 
@@ -149,7 +152,7 @@ def find_conflicts_range(range_i, range_j, filename, pid, cpid):
 			else: # rimin >= rjmin and rimax >= rjmax: #case B
 				if ri[0] == "write" or rj[0] == "write": # r-w or w-r accesses only NYAP!
 					deltatime = get_time(ritime, rjtime)
-					print "conflict on file %s in i[%d,%d] and j[%d,%d] - %s %s - time %f %f - %f" %(filename, rimin, rimax, rjmin, rjmax, ri[0], rj[0], ritime, rjtime, deltatime)
+					#print "conflict on file %s in i[%d,%d] and j[%d,%d] - %s %s - time %f %f - %f" %(filename, rimin, rimax, rjmin, rjmax, ri[0], rj[0], ritime, rjtime, deltatime)
 					conflicts.add(pid, cpid, filename, deltatime) # pid, cpid, cpath
 					ret = True
 
